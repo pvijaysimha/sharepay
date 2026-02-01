@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  emailVerified DateTime?
+  image     String?
+  avatarUrl String?
+  password  String?
+  
+  accounts      Account[]
+  sessions      Session[]
+
+  memberships GroupMember[]
+  expenses    Expense[]     @relation("Payer")
+  splits      ExpenseSplit[]
+
+  friends     Friendship[]  @relation("UserFriends")
+  friendOf    Friendship[] @relation("FriendUsers")
+  notifications Notification[]
+  recurringExpenses RecurringExpense[] @relation("RecurringPayer")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // 'GROUP_ADD', 'EXPENSE_ADD', 'FRIEND_ADD', 'SETTLEMENT'
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  currency  String   @default("USD")
+  
+  members   GroupMember[]
+  expenses  Expense[]
+  recurringExpenses RecurringExpense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GroupMember {
+  id      String @id @default(cuid())
+  userId  String
+  groupId String
+  
+  user    User   @relation(fields: [userId], references: [id])
+  group   Group  @relation(fields: [groupId], references: [id])
+
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, groupId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Decimal
+  category    String   @default("EXPENSE") // "EXPENSE" or "SETTLEMENT"
+  date        DateTime @default(now())
+  
+  receiptUrl  String?
+  
+  payerId     String
+  payer       User     @relation("Payer", fields: [payerId], references: [id])
+
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+
+  splits      ExpenseSplit[]
+  billEntries BillEntry[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ExpenseSplit {
+  id        String  @id @default(cuid())
+  expenseId String
+  userId    String
+  amount    Decimal
+  
+  expense   Expense @relation(fields: [expenseId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+}
+
+// Optional, for detailed bill parsing
+model BillEntry {
+  id        String  @id @default(cuid())
+  expenseId String
+  name      String
+  quantity  Int     @default(1)
+  price     Decimal
+  
+  expense   Expense @relation(fields: [expenseId], references: [id])
+}
+
+model Friendship {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  status    String   @default("ACCEPTED")
+  
+  user      User     @relation("UserFriends", fields: [userId], references: [id])
+  friend    User     @relation("FriendUsers", fields: [friendId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+}
+
+model RecurringExpense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Decimal
+  category    String   @default("EXPENSE")
+  
+  // Schedule
+  interval    String   // 'MONTHLY', 'WEEKLY'
+  nextRun     DateTime
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  payerId     String
+  payer       User     @relation("RecurringPayer", fields: [payerId], references: [id])
+  
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+
+  splits      String   // JSON string
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

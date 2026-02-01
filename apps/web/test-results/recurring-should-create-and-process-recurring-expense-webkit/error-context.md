@@ -1,0 +1,52 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e13]
+  - generic [ref=e14]:
+    - navigation [ref=e15]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - link "SharePay" [ref=e20]:
+            - /url: /dashboard
+          - generic [ref=e21]:
+            - link "Overview" [ref=e22]:
+              - /url: /dashboard
+            - link "Groups" [ref=e23]:
+              - /url: /dashboard/groups
+            - link "Analytics" [ref=e24]:
+              - /url: /dashboard/analytics
+        - generic [ref=e25]:
+          - button "3" [ref=e27] [cursor=pointer]:
+            - img [ref=e28]
+            - generic [ref=e30]: "3"
+          - button "Sign out" [ref=e31] [cursor=pointer]
+    - main [ref=e33]:
+      - generic [ref=e35]:
+        - generic [ref=e37]:
+          - generic [ref=e39]:
+            - link [ref=e40]:
+              - /url: /dashboard
+              - img [ref=e41]
+            - heading "Recurring Group" [level=3] [ref=e43]
+          - generic [ref=e44]:
+            - button "Add Member" [ref=e45] [cursor=pointer]
+            - button "Add Expense" [ref=e46] [cursor=pointer]
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - heading "Expenses" [level=4] [ref=e50]
+            - list [ref=e51]:
+              - listitem [ref=e52]:
+                - generic [ref=e53]:
+                  - paragraph [ref=e55]: Monthly Rent
+                  - generic [ref=e56]:
+                    - paragraph [ref=e57]: Paid by Recursion
+                    - img [ref=e58]
+                    - paragraph [ref=e60]: 1/29/2026
+                - paragraph [ref=e62]: USD 1200.00
+          - generic [ref=e63]:
+            - heading "Balances" [level=4] [ref=e64]
+            - generic [ref=e66]: No outstanding balances. You are all settled up!
+```

@@ -1,0 +1,52 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - navigation [ref=e13]:
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - link "SharePay" [ref=e18] [cursor=pointer]:
+            - /url: /dashboard
+          - generic [ref=e19]:
+            - link "Overview" [ref=e20] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Groups" [ref=e21] [cursor=pointer]:
+              - /url: /dashboard/groups
+            - link "Analytics" [ref=e22] [cursor=pointer]:
+              - /url: /dashboard/analytics
+        - generic [ref=e23]:
+          - button "3" [ref=e25] [cursor=pointer]:
+            - img [ref=e26]
+            - generic [ref=e28]: "3"
+          - button "Sign out" [ref=e29] [cursor=pointer]
+    - main [ref=e31]:
+      - generic [ref=e33]:
+        - generic [ref=e35]:
+          - generic [ref=e37]:
+            - link [ref=e38] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e39]
+            - heading "Recurring Group" [level=3] [ref=e41]
+          - generic [ref=e42]:
+            - button "Add Member" [ref=e43] [cursor=pointer]
+            - button "Add Expense" [ref=e44] [cursor=pointer]
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - heading "Expenses" [level=4] [ref=e48]
+            - list [ref=e49]:
+              - listitem [ref=e50]:
+                - generic [ref=e51]:
+                  - paragraph [ref=e53]: Monthly Rent
+                  - generic [ref=e54]:
+                    - paragraph [ref=e55]: Paid by Recursion
+                    - img [ref=e56]
+                    - paragraph [ref=e58]: 1/29/2026
+                - paragraph [ref=e60]: USD 1200.00
+          - generic [ref=e61]:
+            - heading "Balances" [level=4] [ref=e62]
+            - generic [ref=e64]: No outstanding balances. You are all settled up!
+```

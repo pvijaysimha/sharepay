@@ -1,0 +1,16 @@
+{
+    "name": "SharePay",
+    "short_name": "SharePay",
+    "description": "Split expenses with friends easily.",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#4F46E5",
+    "icons": [
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
