@@ -47,39 +47,41 @@ export function parseReceipt(text: string): ParsedReceipt {
         }
 
         // Check for Price at end of line
-        // We look for the LAST occurrence of a price pattern in the line
         const matches = [...line.matchAll(amountRegex)];
         if (matches.length > 0) {
             const lastMatch = matches[matches.length - 1];
-            const cleanVal = lastMatch[0].replace(/[^0-9.]/g, '');
+            const cleanVal = lastMatch![0].replace(/[^0-9.]/g, '');
             const val = parseFloat(cleanVal);
 
             if (!isNaN(val)) {
                 allAmounts.push(val);
 
-                // Check if it's likely an item
-                const upperLine = line.toUpperCase();
-                const isNoise = noiseWords.some(w => upperLine.includes(w));
+                // Check if line ends with a price
+                const priceMatch = line.match(/(\d+\.\d{2})$/);
 
-                if (!isNoise) {
-                    // Extract Name: Everything before the price
-                    // We use the index of the match to strip the end
-                    let name = line.substring(0, lastMatch.index).trim();
+                if (priceMatch) {
+                    const itemPrice = parseFloat(priceMatch[0]);
 
-                    // Cleanup trailing dots or symbols from name
-                    name = name.replace(/[.|,]+$/, '').trim();
+                    const isTotal = /total/i.test(line);
+                    const isTax = /tax|vat/i.test(line);
 
-                    // Basic Quantity detection (e.g., "2 x Burger" or "2 @ 5.00")
-                    let quantity = 1;
-                    const qtyRegex = /^(\d+)\s?([xX@])/;
-                    const qtyMatch = name.match(qtyRegex);
-                    if (qtyMatch) {
-                        quantity = parseInt(qtyMatch[1], 10);
-                        name = name.substring(qtyMatch[0].length).trim();
-                    }
+                    // Use the 'amount' variable from the outer scope for comparison
+                    if (!isTotal && !isTax && amount !== undefined && itemPrice < amount) {
+                        // It's likely a line item
+                        // Extract Name (everything before the price)
+                        let name = line.substring(0, priceMatch.index).trim();
 
-                    if (name.length > 0) {
-                        items.push({ name, price: val, quantity });
+                        // Attempt to find quantity (e.g., "2 x 10.00" or "2 @ 10.00")
+                        let quantity = 1;
+                        const qtyMatch = line.match(/^(\d+)\s*[@x]/i);
+                        if (qtyMatch && qtyMatch[1]) {
+                            quantity = parseInt(qtyMatch[1], 10);
+                            name = name.replace(/^(\d+)\s*[@x]/i, '').trim();
+                        }
+
+                        if (name.length > 0) {
+                            items.push({ name, price: itemPrice, quantity });
+                        }
                     }
                 }
             }

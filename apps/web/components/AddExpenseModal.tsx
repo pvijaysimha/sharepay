@@ -63,11 +63,16 @@ export default function AddExpenseModal({ isOpen, onClose, groupId, members, cur
 
     const updateItem = (index: number, field: string, value: string | number) => {
         const newItems = [...scannedItems];
-        newItems[index] = { ...newItems[index], [field]: value };
+        if (!newItems[index]) return; // Safety check
+
+        if (field === 'name' && typeof value === 'string') {
+             newItems[index].name = value;
+        } else if (field === 'price' && typeof value === 'number') {
+             newItems[index].price = value;
+        } else if (field === 'quantity' && typeof value === 'number') {
+             newItems[index].quantity = value;
+        }
         setScannedItems(newItems);
-        
-        // Update Total Amount automatically if items change?
-        // Let's assume User manually verifies total.
     };
 
     const removeItem = (index: number) => {

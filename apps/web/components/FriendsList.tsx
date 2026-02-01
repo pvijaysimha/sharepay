@@ -76,7 +76,7 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
                             <li key={friend.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
-                                        {friend.name ? friend.name[0].toUpperCase() : '?'}
+                                        {(friend.name?.toUpperCase()?.[0]) ?? '?'}
                                     </div>
                                     <div className="ml-4">
                                         <div className="text-sm font-medium text-gray-900">{friend.name || 'Unknown'}</div>
