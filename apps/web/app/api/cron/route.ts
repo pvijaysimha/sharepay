@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@repo/db';
+import { prisma, Prisma } from '@repo/db';
 
 export async function GET(req: Request) {
     try {
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
             }
 
             // Create Expense & Update Next Run in transaction
-            await prisma.$transaction(async (tx) => {
+            await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
                 // 1. Create Expense
                 const newExpense = await tx.expense.create({
                     data: {
