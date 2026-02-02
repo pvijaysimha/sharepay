@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@repo/db';
+import { prisma, Prisma } from '@repo/db';
 import { verifyAuth } from '../../../lib/auth-utils';
 import { cookies } from 'next/headers';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
         const payerName = payerUser?.name || 'Someone';
 
         // 4. Create Transaction
-        const expense = await prisma.$transaction(async (tx) => {
+        const expense = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Create the main expense record
             const newExpense = await tx.expense.create({
                 data: {
