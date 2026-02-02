@@ -19,10 +19,19 @@ export const authOptions: NextAuthOptions = {
             allowDangerousEmailAccountLinking: true,
         }),
     ],
+    session: {
+        strategy: "jwt",
+    },
     callbacks: {
-        session: async ({ session, user }) => {
+        jwt: async ({ token, user }) => {
+            if (user) {
+                token.id = user.id;
+            }
+            return token;
+        },
+        session: async ({ session, token }) => {
             if (session?.user) {
-                (session.user as any).id = user.id;
+                (session.user as any).id = token.id;
             }
             return session;
         },
@@ -30,5 +39,4 @@ export const authOptions: NextAuthOptions = {
     pages: {
         signIn: '/auth/login',
     },
-    // session: { strategy: "database" } // Default with adapter
 };
