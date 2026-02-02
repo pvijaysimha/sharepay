@@ -15,7 +15,10 @@ export async function middleware(request: NextRequest) {
 
         // Check for NextAuth session
         // Note: Requires NEXTAUTH_SECRET to be set in .env
-        const session = await getToken({ req: request });
+        const session = await getToken({
+            req: request,
+            secret: process.env.NEXTAUTH_SECRET
+        });
         if (session) {
             return NextResponse.next();
         }
