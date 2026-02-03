@@ -1,26 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import OAuthButtons from '../../../components/OAuthButtons';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 
 export default function LoginPage() {
-  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-
-  // Redirect authenticated users to dashboard
-  useEffect(() => {
-    if (status === 'authenticated' && session) {
-      router.replace('/dashboard');
-    }
-  }, [session, status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
