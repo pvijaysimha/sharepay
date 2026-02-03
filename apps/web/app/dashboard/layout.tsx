@@ -2,18 +2,34 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import NotificationBell from '../../components/NotificationBell';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session, status } = useSession();
   const router = useRouter();
 
+  // Redirect to login if not authenticated
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    router.replace('/auth/login');
+    return null;
+  }
+
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/auth/login');
+    await signOut({ callbackUrl: '/auth/login' });
   };
 
   return (
