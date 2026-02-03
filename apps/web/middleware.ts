@@ -15,12 +15,16 @@ export async function middleware(request: NextRequest) {
 
         // Check for NextAuth session
         // Note: Requires NEXTAUTH_SECRET to be set in .env
+        const isProduction = process.env.NODE_ENV === 'production';
         const session = await getToken({
             req: request,
             secret: process.env.NEXTAUTH_SECRET,
-            secureCookie: process.env.NODE_ENV === 'production',
+            secureCookie: isProduction,
+            cookieName: isProduction
+                ? '__Secure-next-auth.session-token'
+                : 'next-auth.session-token',
         });
-        console.log('[Middleware] Session token:', session ? 'Found' : 'Not found');
+        console.log('[Middleware] Session token:', session ? 'Found' : 'Not found', 'isProduction:', isProduction);
         if (session) {
             return NextResponse.next();
         }
