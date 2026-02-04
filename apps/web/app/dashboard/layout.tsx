@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -14,7 +15,14 @@ export default function DashboardLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Redirect to login if not authenticated
+  // Use useEffect for redirect to avoid hydration issues
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/auth/login');
+    }
+  }, [status, router]);
+
+  // Show loading while session is being fetched
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -23,9 +31,13 @@ export default function DashboardLayout({
     );
   }
 
+  // Don't render content if redirecting
   if (status === 'unauthenticated') {
-    router.replace('/auth/login');
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
   const handleLogout = async () => {
