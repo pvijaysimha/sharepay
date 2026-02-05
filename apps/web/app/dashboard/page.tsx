@@ -1,20 +1,15 @@
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { verifyAuth } from '../../lib/auth-utils';
+import { getAuthUser } from '../../lib/auth-utils';
 import { prisma } from '@repo/db';
 import DashboardClient from '../../components/DashboardClient';
 
 async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-
-  if (!token) return null;
-
-  const payload = await verifyAuth(token);
-  if (!payload || !payload.userId) return null;
+  const authUser = await getAuthUser();
+  
+  if (!authUser) return null;
 
   const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
+    where: { id: authUser.id },
     include: {
         memberships: {
             include: {
@@ -36,4 +31,3 @@ export default async function DashboardPage() {
 
   return <DashboardClient user={user} />;
 }
-

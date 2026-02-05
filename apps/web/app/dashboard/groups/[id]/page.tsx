@@ -1,7 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { prisma } from '@repo/db';
-import { verifyAuth } from '../../../../lib/auth-utils';
+import { getAuthUser } from '../../../../lib/auth-utils';
 import GroupDetailsClient from '../../../../components/GroupDetailsClient';
 
 interface PageProps {
@@ -11,16 +10,12 @@ interface PageProps {
 }
 
 async function getData(groupId: string) {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-
-    if (!token) return { user: null, group: null, expenses: [] };
-
-    const payload = await verifyAuth(token);
-    if (!payload || !payload.userId) return { user: null, group: null, expenses: [] };
+    const authUser = await getAuthUser();
+    
+    if (!authUser) return { user: null, group: null, expenses: [] };
 
     const user = await prisma.user.findUnique({
-        where: { id: payload.userId }
+        where: { id: authUser.id }
     });
 
     // Fetch Group & Verify Membership
