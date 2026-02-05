@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@repo/db';
-import { verifyAuth } from '../../../../lib/auth-utils';
-import { cookies } from 'next/headers';
+import { getAuthUser } from '../../../../lib/auth-utils';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
-        const payload = await verifyAuth(token || '');
+        const user = await getAuthUser();
 
-        if (!payload || !payload.userId) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -48,7 +45,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         // Check membership
-        const isMember = group.members.some(member => member.user.id === payload.userId);
+        const isMember = group.members.some(member => member.user.id === user.id);
         if (!isMember) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }

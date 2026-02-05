@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma, Prisma } from '@repo/db';
-import { verifyAuth } from '../../../lib/auth-utils';
-import { cookies } from 'next/headers';
+import { getAuthUser } from '../../../lib/auth-utils';
 import { Decimal } from '@prisma/client/runtime/library';
 
 export async function POST(req: Request) {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
-        const payload = await verifyAuth(token || '');
+        const user = await getAuthUser();
 
-        if (!payload || !payload.userId) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -44,14 +41,14 @@ export async function POST(req: Request) {
         }
 
         // Determine Payer (Default to Creator if not specified)
-        const finalPayerId = payerId || payload.userId;
+        const finalPayerId = payerId || user.id;
 
         // 3. Verify Membership (If Group ID provided)
         if (groupId) {
             const membership = await prisma.groupMember.findUnique({
                 where: {
                     userId_groupId: {
-                        userId: payload.userId,
+                        userId: user.id,
                         groupId: groupId,
                     }
                 }
@@ -62,7 +59,7 @@ export async function POST(req: Request) {
             }
 
             // Verify Payer Membership if explicitly provided and different from creator
-            if (payerId && payerId !== payload.userId) {
+            if (payerId && payerId !== user.id) {
                 const payerMembership = await prisma.groupMember.findUnique({
                     where: {
                         userId_groupId: {
@@ -171,11 +168,9 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const groupId = url.searchParams.get('groupId');
 
-        const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
-        const payload = await verifyAuth(token || '');
+        const user = await getAuthUser();
 
-        if (!payload || !payload.userId) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -184,7 +179,7 @@ export async function GET(req: Request) {
             const membership = await prisma.groupMember.findUnique({
                 where: {
                     userId_groupId: {
-                        userId: payload.userId,
+                        userId: user.id,
                         groupId: groupId,
                     }
                 }
@@ -208,8 +203,8 @@ export async function GET(req: Request) {
             const expenses = await prisma.expense.findMany({
                 where: {
                     OR: [
-                        { payerId: payload.userId },
-                        { splits: { some: { userId: payload.userId } } }
+                        { payerId: user.id },
+                        { splits: { some: { userId: user.id } } }
                     ]
                 },
                 include: {

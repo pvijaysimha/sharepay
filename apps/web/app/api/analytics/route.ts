@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@repo/db';
-import { verifyAuth } from '../../../lib/auth-utils';
-import { headers } from 'next/headers';
+import { getAuthUser } from '../../../lib/auth-utils';
 
 export async function GET(req: Request) {
     try {
-        const headersList = await headers();
-        const token = headersList.get('cookie')?.split('token=')[1]?.split(';')[0] || '';
-        const payload = await verifyAuth(token);
+        const user = await getAuthUser();
 
-        if (!payload || !payload.userId) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -17,7 +14,7 @@ export async function GET(req: Request) {
         // This represents their share of expenses
         const mySplits = await prisma.expenseSplit.findMany({
             where: {
-                userId: payload.userId
+                userId: user.id
             },
             include: {
                 expense: {

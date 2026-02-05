@@ -1,7 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
-
 import { jwtVerify } from 'jose';
+import { getServerSession } from 'next-auth';
+import { authOptions } from './next-auth';
+import { prisma } from '@repo/db';
+import { headers } from 'next/headers';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev';
 
@@ -27,4 +30,41 @@ export async function verifyAuth(token: string): Promise<any> {
         console.error('verifyAuth error:', error);
         return null;
     }
+}
+
+// Unified auth function that checks NextAuth session first, then falls back to custom JWT
+export async function getAuthUser(): Promise<{ id: string; email: string } | null> {
+    // First, try NextAuth session (for OAuth users)
+    try {
+        const session = await getServerSession(authOptions);
+        if (session?.user?.email) {
+            const user = await prisma.user.findUnique({
+                where: { email: session.user.email },
+                select: { id: true, email: true }
+            });
+            if (user) {
+                return user;
+            }
+        }
+    } catch (error) {
+        console.error('NextAuth session check error:', error);
+    }
+
+    // Fallback to custom JWT token (for email/password users)
+    try {
+        const headersList = await headers();
+        const cookieHeader = headersList.get('cookie') || '';
+        const token = cookieHeader.split('token=')[1]?.split(';')[0] || '';
+
+        if (token) {
+            const payload = await verifyAuth(token);
+            if (payload?.id) {
+                return { id: payload.id, email: payload.email };
+            }
+        }
+    } catch (error) {
+        console.error('Custom JWT check error:', error);
+    }
+
+    return null;
 }

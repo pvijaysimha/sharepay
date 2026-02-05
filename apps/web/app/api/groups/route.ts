@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@repo/db';
-import { verifyAuth } from '../../../lib/auth-utils';
-import { cookies } from 'next/headers';
+import { getAuthUser } from '../../../lib/auth-utils';
 
 export async function GET() {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
-        const payload = await verifyAuth(token || '');
+        const user = await getAuthUser();
 
-        if (!payload || !payload.userId) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -17,7 +14,7 @@ export async function GET() {
             where: {
                 members: {
                     some: {
-                        userId: payload.userId,
+                        userId: user.id,
                     },
                 },
             },
@@ -40,11 +37,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
-        const payload = await verifyAuth(token || '');
+        const user = await getAuthUser();
 
-        if (!payload || !payload.userId) {
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -61,7 +56,7 @@ export async function POST(req: Request) {
                 currency: currency || 'USD',
                 members: {
                     create: {
-                        userId: payload.userId,
+                        userId: user.id,
                     },
                 },
             },

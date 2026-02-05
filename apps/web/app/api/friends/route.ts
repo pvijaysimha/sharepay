@@ -1,20 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@repo/db';
-import { verifyAuth } from '../../../lib/auth-utils';
-import { cookies } from 'next/headers';
+import { getAuthUser } from '../../../lib/auth-utils';
 
 export async function GET(req: Request) {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-    const payload = await verifyAuth(token || '');
+    const user = await getAuthUser();
 
-    if (!payload) {
+    if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
         const friendships = await prisma.friendship.findMany({
-            where: { userId: payload.userId },
+            where: { userId: user.id },
             include: {
                 friend: {
                     select: { id: true, name: true, email: true, avatarUrl: true }
@@ -32,11 +29,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-    const payload = await verifyAuth(token || '');
+    const user = await getAuthUser();
 
-    if (!payload) {
+    if (!user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -48,18 +43,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Email is required' }, { status: 400 });
         }
 
-        if (email === payload.email) { // payload usually doesn't have email unless put there, checking self add
-            // We need to fetch current user to know their email?
-            // Or simpler: check if found user id === payload.userId
-        }
-
         const friend = await prisma.user.findUnique({ where: { email } });
 
         if (!friend) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        if (friend.id === payload.userId) {
+        if (friend.id === user.id) {
             return NextResponse.json({ error: 'You cannot add yourself' }, { status: 400 });
         }
 
@@ -67,7 +57,7 @@ export async function POST(req: Request) {
         const existing = await prisma.friendship.findUnique({
             where: {
                 userId_friendId: {
-                    userId: payload.userId,
+                    userId: user.id,
                     friendId: friend.id,
                 }
             }
@@ -79,7 +69,7 @@ export async function POST(req: Request) {
 
         // Fetch current user details for notification
         const currentUser = await prisma.user.findUnique({
-            where: { id: payload.userId },
+            where: { id: user.id },
             select: { name: true }
         });
         const currentUserName = currentUser?.name || 'Someone';
@@ -89,7 +79,7 @@ export async function POST(req: Request) {
         await prisma.$transaction([
             prisma.friendship.create({
                 data: {
-                    userId: payload.userId,
+                    userId: user.id,
                     friendId: friend.id,
                     status: 'ACCEPTED'
                 }
@@ -97,7 +87,7 @@ export async function POST(req: Request) {
             prisma.friendship.create({
                 data: {
                     userId: friend.id,
-                    friendId: payload.userId,
+                    friendId: user.id,
                     status: 'ACCEPTED'
                 }
             }),
