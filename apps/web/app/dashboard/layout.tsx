@@ -1,48 +1,74 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSession, signOut } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
 import NotificationBell from '../../components/NotificationBell';
 import LoadingSpinner from '../../components/LoadingSpinner';
+
+interface SessionUser {
+  name?: string;
+  email?: string;
+  image?: string;
+}
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session, status } = useSession();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const router = useRouter();
 
-  // Use useEffect for redirect to avoid hydration issues
+  // Check auth by directly fetching session API
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/auth/login');
-    }
-  }, [status, router]);
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/session', {
+          credentials: 'include',
+        });
+        const data = await response.json();
+        
+        if (data && data.user) {
+          setIsAuthenticated(true);
+          setUser(data.user);
+        } else {
+          setIsAuthenticated(false);
+          router.replace('/auth/login');
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setIsAuthenticated(false);
+        router.replace('/auth/login');
+      }
+    };
 
-  // Show loading while session is being fetched
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  // Don't render content if redirecting
-  if (status === 'unauthenticated') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+    checkAuth();
+  }, [router]);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/auth/login' });
   };
+
+  // Show loading while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  // Show loading during redirect
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -68,6 +94,9 @@ export default function DashboardLayout({
 
 
             <div className="flex items-center">
+              {user?.name && (
+                <span className="mr-4 text-sm text-gray-600">Hi, {user.name.split(' ')[0]}</span>
+              )}
               <NotificationBell />
               <button
                 onClick={handleLogout}
