@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import CreateGroupModal from './CreateGroupModal';
 import FriendsList from './FriendsList';
+import BalanceSummary from './BalanceSummary';
 
 interface DashboardClientProps {
   user: {
@@ -98,6 +99,8 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 )}
              </div>
         </div>
+
+        <BalanceSummary />
         
         <FriendsList currentUser={user} />
       </div>
