@@ -37,6 +37,9 @@ export default function FriendLedger({ isOpen, onClose, friend, currentUserId }:
         endDate: '',
         category: ''
     });
+    const [showSettleForm, setShowSettleForm] = useState(false);
+    const [settleAmount, setSettleAmount] = useState('');
+    const [settling, setSettling] = useState(false);
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -60,6 +63,48 @@ export default function FriendLedger({ isOpen, onClose, friend, currentUserId }:
         }
     };
 
+    const handleSettle = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const amount = parseFloat(settleAmount);
+        if (isNaN(amount) || amount <= 0) {
+            alert('Please enter a valid amount');
+            return;
+        }
+
+        setSettling(true);
+        try {
+            // For direct settlements (no group), we create an expense where:
+            // - If you owe them (netBalance < 0): You are paying them back
+            // - If they owe you (netBalance >= 0): They are paying you back
+            const res = await fetch('/api/expenses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    description: 'Settlement',
+                    amount: amount,
+                    groupId: null, // Direct expense
+                    date: new Date().toISOString(),
+                    category: 'SETTLEMENT',
+                    splits: [{ userId: friend.id, amount: amount }]
+                }),
+            });
+
+            if (res.ok) {
+                setSettleAmount('');
+                setShowSettleForm(false);
+                fetchTransactions(); // Refresh the ledger
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Failed to record settlement');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred');
+        } finally {
+            setSettling(false);
+        }
+    };
+
     useEffect(() => {
         if (isOpen) {
             fetchTransactions();
@@ -77,7 +122,7 @@ export default function FriendLedger({ isOpen, onClose, friend, currentUserId }:
 
                 <div className="inline-block w-full max-w-4xl px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:p-6">
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-start mb-4">
                         <div>
                             <h3 className="text-lg font-medium text-gray-900">
                                 Ledger with {friend.name || friend.email}
@@ -89,12 +134,56 @@ export default function FriendLedger({ isOpen, onClose, friend, currentUserId }:
                                 }
                             </div>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-                            <span className="sr-only">Close</span>
-                            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        <div className="flex items-center space-x-3">
+                            {/* Settle Up Button/Form */}
+                            {netBalance !== 0 && !showSettleForm && (
+                                <button
+                                    onClick={() => {
+                                        setSettleAmount(Math.abs(netBalance).toFixed(2));
+                                        setShowSettleForm(true);
+                                    }}
+                                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                                >
+                                    Settle Up
+                                </button>
+                            )}
+                            {showSettleForm && (
+                                <form onSubmit={handleSettle} className="flex items-center space-x-2">
+                                    <div className="relative">
+                                        <span className="absolute left-2 top-2 text-gray-500">$</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={settleAmount}
+                                            onChange={(e) => setSettleAmount(e.target.value)}
+                                            className="w-24 pl-6 pr-2 py-1.5 text-sm border border-gray-300 rounded-md"
+                                            placeholder="0.00"
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={settling}
+                                        className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+                                    >
+                                        {settling ? '...' : 'Pay'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSettleForm(false)}
+                                        className="px-2 py-1.5 text-sm text-gray-500 hover:text-gray-700"
+                                    >
+                                        Cancel
+                                    </button>
+                                </form>
+                            )}
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+                                <span className="sr-only">Close</span>
+                                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Filters */}
