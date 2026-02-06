@@ -39,13 +39,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         const groupName = requesterMembership.group.name;
 
-        // 2. Find User to Add
-        const userToAdd = await prisma.user.findUnique({
-            where: { email }
+        // 2. Find User to Add (case-insensitive email search)
+        const userToAdd = await prisma.user.findFirst({
+            where: {
+                email: {
+                    equals: email,
+                    mode: 'insensitive'
+                }
+            }
         });
 
         if (!userToAdd) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            return NextResponse.json({ error: 'User not found. They need to sign up first.' }, { status: 404 });
         }
 
         // 3. Check if already member

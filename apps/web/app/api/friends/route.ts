@@ -43,10 +43,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Email is required' }, { status: 400 });
         }
 
-        const friend = await prisma.user.findUnique({ where: { email } });
+        const friend = await prisma.user.findFirst({
+            where: {
+                email: {
+                    equals: email,
+                    mode: 'insensitive'
+                }
+            }
+        });
 
         if (!friend) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            return NextResponse.json({ error: 'User not found. They need to sign up first.' }, { status: 404 });
         }
 
         if (friend.id === user.id) {
