@@ -18,6 +18,7 @@ interface FriendsListProps {
 
 export default function FriendsList({ currentUser }: FriendsListProps) {
     const [friends, setFriends] = useState<User[]>([]);
+    const [balances, setBalances] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
     const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -25,10 +26,19 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
 
     const fetchFriends = async () => {
         try {
-            const res = await fetch('/api/friends');
-            if (res.ok) {
-                const data = await res.json();
+            const [friendsRes, balancesRes] = await Promise.all([
+                fetch('/api/friends'),
+                fetch('/api/friends/balances')
+            ]);
+            
+            if (friendsRes.ok) {
+                const data = await friendsRes.json();
                 setFriends(data.friends);
+            }
+            
+            if (balancesRes.ok) {
+                const data = await balancesRes.json();
+                setBalances(data.balances || {});
             }
         } catch (error) {
             console.error('Error fetching friends:', error);
@@ -74,15 +84,33 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
                     ) : friends.length === 0 ? (
                         <li className="px-6 py-4 text-center text-sm text-gray-500">No friends yet. Add one to get started!</li>
                     ) : (
-                        friends.map((friend) => (
+                        friends.map((friend) => {
+                            const balance = balances[friend.id] || 0;
+                            return (
                             <li key={friend.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-                                <div className="flex items-center">
+                                <div className="flex items-center flex-1">
                                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
                                         {(friend.name?.toUpperCase()?.[0]) ?? '?'}
                                     </div>
-                                    <div className="ml-4">
+                                    <div className="ml-4 flex-1">
                                         <div className="text-sm font-medium text-gray-900">{friend.name || 'Unknown'}</div>
                                         <div className="text-sm text-gray-500">{friend.email}</div>
+                                    </div>
+                                    {/* Balance Display */}
+                                    <div className="mx-4 text-right">
+                                        {balance === 0 ? (
+                                            <span className="text-sm text-gray-400">settled</span>
+                                        ) : balance > 0 ? (
+                                            <div>
+                                                <div className="text-sm font-medium text-green-600">+${balance.toFixed(2)}</div>
+                                                <div className="text-xs text-gray-500">owes you</div>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <div className="text-sm font-medium text-red-600">-${Math.abs(balance).toFixed(2)}</div>
+                                                <div className="text-xs text-gray-500">you owe</div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex space-x-3">
@@ -100,7 +128,8 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
                                     </button>
                                 </div>
                             </li>
-                        ))
+                            );
+                        })
                     )}
                 </ul>
             </div>
