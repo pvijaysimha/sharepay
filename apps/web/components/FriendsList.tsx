@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import AddFriendModal from './AddFriendModal';
 import AddExpenseModal from './AddExpenseModal';
+import FriendLedger from './FriendLedger';
 
 interface User {
     id: string;
@@ -20,6 +21,7 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
     const [loading, setLoading] = useState(true);
     const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
     const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
+    const [ledgerFriend, setLedgerFriend] = useState<User | null>(null);
 
     const fetchFriends = async () => {
         try {
@@ -83,12 +85,20 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
                                         <div className="text-sm text-gray-500">{friend.email}</div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleOpenExpense(friend)}
-                                    className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
-                                >
-                                    Add Expense
-                                </button>
+                                <div className="flex space-x-3">
+                                    <button
+                                        onClick={() => setLedgerFriend(friend)}
+                                        className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                                    >
+                                        View Ledger
+                                    </button>
+                                    <button
+                                        onClick={() => handleOpenExpense(friend)}
+                                        className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                                    >
+                                        Add Expense
+                                    </button>
+                                </div>
                             </li>
                         ))
                     )}
@@ -107,6 +117,15 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
                     members={[currentUser, selectedFriend]}
                     currentUser={currentUser}
                     groupId={null}
+                />
+            )}
+
+            {ledgerFriend && (
+                <FriendLedger
+                    isOpen={!!ledgerFriend}
+                    onClose={() => setLedgerFriend(null)}
+                    friend={ledgerFriend}
+                    currentUserId={currentUser.id}
                 />
             )}
         </div>
