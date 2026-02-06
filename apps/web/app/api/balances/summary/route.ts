@@ -28,9 +28,15 @@ export async function GET(req: Request) {
         const groupIds = memberships.map(m => m.groupId);
         const groupMap = new Map(memberships.map(m => [m.groupId, m.group.name]));
 
-        // Get all expenses in user's groups
+        // Get all expenses: both in user's groups AND direct expenses (groupId is null)
         const expenses = await prisma.expense.findMany({
-            where: { groupId: { in: groupIds } },
+            where: {
+                OR: [
+                    { groupId: { in: groupIds } },  // Group expenses
+                    { groupId: null, payerId: user.id },  // Direct expenses where user paid
+                    { groupId: null, splits: { some: { userId: user.id } } }  // Direct expenses where user has a split
+                ]
+            },
             include: {
                 splits: true,
                 payer: { select: { id: true, name: true, email: true } }
