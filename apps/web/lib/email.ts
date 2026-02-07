@@ -1,9 +1,19 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid build-time errors when API key not available
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+    if (!resendClient) {
+        if (!process.env.RESEND_API_KEY) {
+            throw new Error('RESEND_API_KEY environment variable is not set');
+        }
+        resendClient = new Resend(process.env.RESEND_API_KEY);
+    }
+    return resendClient;
+}
 
 const APP_NAME = 'SharePay';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev'; // Use your verified domain in production
 
 export async function sendVerificationEmail(
     email: string,
@@ -12,8 +22,10 @@ export async function sendVerificationEmail(
 ): Promise<{ success: boolean; error?: string }> {
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+    const FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
     try {
+        const resend = getResendClient();
         const { data, error } = await resend.emails.send({
             from: `${APP_NAME} <${FROM_EMAIL}>`,
             to: email,
