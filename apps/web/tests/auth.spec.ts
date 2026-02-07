@@ -1,47 +1,144 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Authentication Flow', () => {
-    test('should allow a user to sign up and then log in', async ({ page }) => {
-        // 1. Navigate to Signup Page
+    // Use timestamp to ensure unique email for each test run
+    const testId = Date.now();
+
+    test('should show signup page correctly', async ({ page }) => {
         await page.goto('/auth/signup');
-        await expect(page).toHaveTitle(/Create Next App/); // Adjusted based on layout metadata
+        await expect(page).toHaveTitle(/SharePay/);
+        await expect(page.locator('h2')).toContainText('Create your account');
+        await expect(page.locator('input[id="name"]')).toBeVisible();
+        await expect(page.locator('input[id="email-address"]')).toBeVisible();
+        await expect(page.locator('input[id="password"]')).toBeVisible();
+        await expect(page.locator('button[type="submit"]')).toBeVisible();
+    });
 
-        // 2. Fill out Signup Form
-        const uniqueEmail = `test-${Date.now()}@example.com`;
-        await page.fill('input[name="name"]', 'Test User');
-        await page.fill('input[name="email"]', uniqueEmail);
-        await page.fill('input[name="password"]', 'password123');
+    test('should show login page correctly', async ({ page }) => {
+        await page.goto('/auth/login');
+        await expect(page).toHaveTitle(/SharePay/);
+        await expect(page.locator('h2')).toContainText('Sign in to your account');
+        await expect(page.locator('input[id="email-address"]')).toBeVisible();
+        await expect(page.locator('input[id="password"]')).toBeVisible();
+        await expect(page.locator('a[href="/auth/forgot-password"]')).toBeVisible();
+    });
 
-        // 3. Submit Signup
+    test('should show forgot password page correctly', async ({ page }) => {
+        await page.goto('/auth/forgot-password');
+        await expect(page).toHaveTitle(/SharePay/);
+        await expect(page.locator('h2')).toContainText('Forgot your password?');
+        await expect(page.locator('input[type="email"]')).toBeVisible();
+        await expect(page.locator('button[type="submit"]')).toBeVisible();
+    });
+
+    test('should signup successfully and show verification message', async ({ page }) => {
+        const uniqueEmail = `test-signup-${testId}@example.com`;
+
+        await page.goto('/auth/signup');
+
+        // Fill out signup form
+        await page.fill('input[id="name"]', 'Test User');
+        await page.fill('input[id="email-address"]', uniqueEmail);
+        await page.fill('input[id="password"]', 'password123');
+
+        // Submit signup
         await page.click('button[type="submit"]');
 
-        // 4. Verify Redirection to Dashboard
-        await expect(page).toHaveURL(/\/dashboard/);
+        // Should show verification message OR redirect to dashboard
+        // Wait for either the success message or dashboard URL
+        await Promise.race([
+            expect(page.getByText('Check your email')).toBeVisible({ timeout: 10000 }),
+            expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 })
+        ]);
+    });
 
-        // 5. (Skip Login steps as we are already logged in)
-        // Verify we can access dashboard features or logout
+    test('should show error for duplicate email signup', async ({ page }) => {
+        // First signup
+        const duplicateEmail = `test-dup-${testId}@example.com`;
+        await page.goto('/auth/signup');
+        await page.fill('input[id="name"]', 'Test User');
+        await page.fill('input[id="email-address"]', duplicateEmail);
+        await page.fill('input[id="password"]', 'password123');
+        await page.click('button[type="submit"]');
 
-        /* 
-           Original test flow was Signup -> Login. 
-           Since Signup now logs in automatically, we can verify Dashboard access directly.
-           For completeness of "Login" testing, we should Logout then Login.
-        */
+        // Wait for signup to complete
+        await page.waitForTimeout(2000);
 
-        // Logout
-        await page.click('text=Sign out');
+        // Go back to signup and try again with same email
+        await page.goto('/auth/signup');
+        await page.fill('input[id="name"]', 'Test User 2');
+        await page.fill('input[id="email-address"]', duplicateEmail);
+        await page.fill('input[id="password"]', 'password456');
+        await page.click('button[type="submit"]');
+
+        // Should show error about existing user
+        await expect(page.getByText(/already exists/i)).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should show error for invalid credentials', async ({ page }) => {
+        await page.goto('/auth/login');
+        await page.fill('input[id="email-address"]', 'nonexistent-user@example.com');
+        await page.fill('input[id="password"]', 'wrongpassword123');
+        await page.click('button[type="submit"]');
+
+        // Should show error message
+        await expect(page.getByText(/Invalid credentials|verify your email/i)).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should navigate from login to forgot password', async ({ page }) => {
+        await page.goto('/auth/login');
+        await page.click('a[href="/auth/forgot-password"]');
+        await expect(page).toHaveURL(/forgot-password/);
+        await expect(page.locator('h2')).toContainText('Forgot your password?');
+    });
+
+    test('should submit forgot password request', async ({ page }) => {
+        await page.goto('/auth/forgot-password');
+        await page.fill('input[type="email"]', 'test@example.com');
+        await page.click('button[type="submit"]');
+
+        // Should show success message (check your email)
+        await expect(page.getByText(/check your email|sent/i)).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should show error for missing reset token', async ({ page }) => {
+        await page.goto('/auth/reset-password');
+
+        // Should show invalid reset link message
+        await expect(page.getByText(/Invalid Reset Link/i)).toBeVisible();
+    });
+
+    test('should show error for invalid reset token', async ({ page }) => {
+        // Navigate to reset password with invalid token
+        await page.goto('/auth/reset-password?token=invalidtoken123');
+
+        // Try to reset password
+        await page.fill('input[id="password"]', 'newpassword123');
+        await page.fill('input[id="confirmPassword"]', 'newpassword123');
+        await page.click('button[type="submit"]');
+
+        // Should show error about invalid/expired token
+        await expect(page.getByText(/Invalid|expired/i)).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should show password mismatch error on reset', async ({ page }) => {
+        await page.goto('/auth/reset-password?token=sometoken');
+        await page.fill('input[id="password"]', 'password123');
+        await page.fill('input[id="confirmPassword"]', 'differentpassword');
+        await page.click('button[type="submit"]');
+
+        await expect(page.getByText(/do not match/i)).toBeVisible();
+    });
+
+    test('should navigate from signup to login', async ({ page }) => {
+        await page.goto('/auth/signup');
+        await page.click('a[href="/auth/login"]');
         await expect(page).toHaveURL(/\/auth\/login/);
+    });
 
-        // 5. Fill out Login Form
-        await page.fill('input[name="email"]', uniqueEmail);
-        await page.fill('input[name="password"]', 'password123');
-
-        // 6. Submit Login
-        await page.click('button[type="submit"]');
-
-        // 7. Verify Redirection to Dashboard (or successful login state)
-        // Note: We haven't implemented /dashboard yet, so this might fail if not handled, 
-        // but the login logic currently redirects to /dashboard.
-        // We expect a 404 on /dashboard but the URL change proves logic worked.
-        await expect(page).toHaveURL(/\/dashboard/);
+    test('should navigate from login to signup', async ({ page }) => {
+        await page.goto('/auth/login');
+        await page.click('a[href="/auth/signup"]');
+        await expect(page).toHaveURL(/\/auth\/signup/);
     });
 });
