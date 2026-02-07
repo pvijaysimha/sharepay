@@ -11,11 +11,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNeedsVerification(false);
+    setLoading(true);
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -24,18 +30,40 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        // In a real app, you'd store the token (e.g., in a cookie or context)
-        // For now, we'll just redirect to the dashboard
-        // const data = await res.json();
-        // localStorage.setItem('token', data.token); // Simplified
         router.push('/dashboard');
+      } else if (data.needsVerification) {
+        setNeedsVerification(true);
+        setVerificationEmail(data.email);
+        setError(data.error);
       } else {
-        const data = await res.json();
         setError(data.error || 'Login failed');
       }
     } catch (err) {
       setError('An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendSuccess(false);
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verificationEmail }),
+      });
+      if (res.ok) {
+        setResendSuccess(true);
+      }
+    } catch (err) {
+      console.error('Resend error:', err);
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -83,9 +111,31 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <div className="flex items-center justify-end">
+            <Link href="/auth/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-500">
+              Forgot your password?
+            </Link>
+          </div>
+
           {error && (
-            <div className="text-red-500 text-sm text-center">
-              {error}
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-sm text-red-700">{error}</p>
+              {needsVerification && (
+                <div className="mt-3">
+                  {resendSuccess ? (
+                    <p className="text-sm text-green-600">Verification email sent! Check your inbox.</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resendLoading}
+                      className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+                    >
+                      {resendLoading ? 'Sending...' : 'Resend verification email'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

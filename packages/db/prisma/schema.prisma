@@ -17,6 +17,8 @@ model User {
   password  String?
   verificationToken String?
   verificationTokenExpiry DateTime?
+  passwordResetToken String?
+  passwordResetExpiry DateTime?
   
   accounts      Account[]
   sessions      Session[]
