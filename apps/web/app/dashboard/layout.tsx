@@ -22,16 +22,16 @@ export default function DashboardLayout({
   const [user, setUser] = useState<SessionUser | null>(null);
   const router = useRouter();
 
-  // Check auth by directly fetching session API
+  // Check auth by directly fetching our unified auth endpoint (supports both OAuth and JWT)
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/auth/session', {
+        const response = await fetch('/api/auth/me', {
           credentials: 'include',
         });
-        const data = await response.json();
         
-        if (data && data.user) {
+        if (response.ok) {
+          const data = await response.json();
           setIsAuthenticated(true);
           setUser(data.user);
         } else {
