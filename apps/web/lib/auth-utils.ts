@@ -54,10 +54,14 @@ export async function getAuthUser(): Promise<{ id: string; email: string } | nul
     try {
         const headersList = await headers();
         const cookieHeader = headersList.get('cookie') || '';
+        console.log('DEBUG getAuthUser - Cookie header:', cookieHeader);
+
         const token = cookieHeader.split('token=')[1]?.split(';')[0] || '';
+        console.log('DEBUG getAuthUser - Token extracted:', token ? `${token.substring(0, 20)}...` : 'EMPTY');
 
         if (token) {
             const payload = await verifyAuth(token);
+            console.log('DEBUG getAuthUser - JWT verify result:', payload);
             // Login API sets 'userId' in the JWT payload
             if (payload?.userId) {
                 return { id: payload.userId as string, email: payload.email as string };
