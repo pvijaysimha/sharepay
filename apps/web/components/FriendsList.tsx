@@ -90,12 +90,12 @@ export default function FriendsList({ currentUser, onAddFriend, refreshTrigger =
                                     <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
                                         {(friend.name?.toUpperCase()?.[0]) ?? '?'}
                                     </div>
-                                    <div className="ml-4 flex-1">
-                                        <div className="text-sm font-medium text-gray-900">{friend.name || 'Unknown'}</div>
-                                        <div className="text-sm text-gray-500">{friend.email}</div>
+                                    <div className="ml-4 flex-1 min-w-0">
+                                        <div className="text-sm font-medium text-gray-900 truncate">{friend.name || 'Unknown'}</div>
+                                        <div className="text-sm text-gray-500 truncate hidden sm:block">{friend.email}</div>
                                     </div>
                                     {/* Balance Display */}
-                                    <div className="mx-4 text-right">
+                                    <div className="mx-2 sm:mx-4 text-right flex-shrink-0">
                                         {balance === 0 ? (
                                             <span className="text-sm text-gray-400">settled</span>
                                         ) : balance > 0 ? (
@@ -111,18 +111,26 @@ export default function FriendsList({ currentUser, onAddFriend, refreshTrigger =
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex space-x-3">
+                                <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
                                     <button
                                         onClick={() => setLedgerFriend(friend)}
-                                        className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                                        className="p-2 text-gray-400 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
+                                        title="View Ledger"
                                     >
-                                        View Ledger
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                        </svg>
+                                        <span className="sr-only">Ledger</span>
                                     </button>
                                     <button
                                         onClick={() => handleOpenExpense(friend)}
-                                        className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                                        className="p-2 text-indigo-600 hover:text-indigo-700 rounded-full hover:bg-indigo-50 transition-colors"
+                                        title="Add Expense"
                                     >
-                                        Add Expense
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                            <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="sr-only">Add Expense</span>
                                     </button>
                                 </div>
                             </li>

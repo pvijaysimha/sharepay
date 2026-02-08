@@ -19,17 +19,19 @@ interface Group {
 
 interface AddExpenseFormProps {
     currentUser: User;
-    groups: Group[]; // Available groups to choose from
+    groups: Group[];
+    friends?: User[];
     preSelectedGroupId?: string;
     onSuccess?: () => void;
 }
 
-export default function AddExpenseForm({ currentUser, groups, preSelectedGroupId, onSuccess }: AddExpenseFormProps) {
+export default function AddExpenseForm({ currentUser, groups, friends = [], preSelectedGroupId, onSuccess }: AddExpenseFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     
     // Selection State
-    const [selectedGroupId, setSelectedGroupId] = useState(preSelectedGroupId || '');
+    // Format: "group:ID" or "friend:ID"
+    const [selection, setSelection] = useState(preSelectedGroupId ? `group:${preSelectedGroupId}` : '');
     const [members, setMembers] = useState<User[]>([]);
     const [loadingMembers, setLoadingMembers] = useState(false);
 
@@ -44,11 +46,18 @@ export default function AddExpenseForm({ currentUser, groups, preSelectedGroupId
     const [recurrenceInterval, setRecurrenceInterval] = useState<'MONTHLY' | 'WEEKLY'>('MONTHLY');
     const [scannedItems, setScannedItems] = useState<{name: string, price: number, quantity: number}[]>([]);
 
-    // Fetch members when group changes
+    // Handle selection change
     useEffect(() => {
-        if (selectedGroupId) {
+        if (!selection) {
+            setMembers([]);
+            return;
+        }
+
+        const [type, id] = selection.split(':');
+
+        if (type === 'group') {
             setLoadingMembers(true);
-            fetch(`/api/groups/${selectedGroupId}/members`)
+            fetch(`/api/groups/${id}/members`)
                 .then(res => res.json())
                 .then(data => {
                     setMembers(data.members || []);
@@ -58,10 +67,13 @@ export default function AddExpenseForm({ currentUser, groups, preSelectedGroupId
                     console.error('Failed to fetch members', err);
                     setLoadingMembers(false);
                 });
-        } else {
-            setMembers([]);
+        } else if (type === 'friend') {
+            const friend = friends.find(f => f.id === id);
+            if (friend) {
+                setMembers([currentUser, friend]);
+            }
         }
-    }, [selectedGroupId]);
+    }, [selection, currentUser, friends]);
 
     const handleScanComplete = (data: ParsedReceipt) => {
         if (data.amount) setAmount(data.amount.toString());
@@ -83,11 +95,14 @@ export default function AddExpenseForm({ currentUser, groups, preSelectedGroupId
             return;
         }
 
-        if (!selectedGroupId) {
-            alert('Please select a group');
+        if (!selection) {
+            alert('Please select a group or friend');
             setLoading(false);
             return;
         }
+
+        const [type, targetId] = selection.split(':');
+        const groupId = type === 'group' ? targetId : undefined;
 
         if (!payerId) {
              alert('Please select who paid');
@@ -130,26 +145,28 @@ export default function AddExpenseForm({ currentUser, groups, preSelectedGroupId
 
         try {
              const res = await fetch('/api/expenses', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    description,
-                    amount: numAmount,
-                    groupId: selectedGroupId,
-                    date,
-                    payerId,
-                    splits,
-                    recurrence: isRecurring ? { interval: recurrenceInterval } : undefined,
-                    items: scannedItems
-                }),
-            });
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({
+                     description,
+                     amount: numAmount,
+                     groupId,
+                     date,
+                     payerId,
+                     splits,
+                     recurrence: isRecurring ? { interval: recurrenceInterval } : undefined,
+                     items: scannedItems
+                 }),
+             });
 
             if (res.ok) {
-                router.refresh(); // Refresh server components
+                router.refresh(); 
                 if (onSuccess) {
                     onSuccess();
+                } else if (type === 'group') {
+                    router.push(`/dashboard/groups/${targetId}`);
                 } else {
-                    router.push(`/dashboard/groups/${selectedGroupId}`);
+                    router.push('/dashboard');
                 }
             } else {
                 const data = await res.json();
@@ -167,21 +184,46 @@ export default function AddExpenseForm({ currentUser, groups, preSelectedGroupId
         <div className="space-y-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
              {!preSelectedGroupId && (
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Group</label>
-                    <select
-                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 bg-gray-50"
-                        value={selectedGroupId}
-                        onChange={(e) => setSelectedGroupId(e.target.value)}
-                    >
-                        <option value="">-- Choose a Group --</option>
-                        {groups.map(g => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                        ))}
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Split With</label>
+                    <div className="relative">
+                        <select
+                            className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-3 bg-white text-gray-900 appearance-none"
+                            value={selection}
+                            onChange={(e) => setSelection(e.target.value)}
+                        >
+                            <option value="" className="text-gray-500">Select group or friend...</option>
+                            
+                            {groups.length > 0 && (
+                                <optgroup label="Groups" className="text-gray-900 font-semibold bg-gray-50">
+                                    {groups.map(g => (
+                                        <option key={g.id} value={`group:${g.id}`} className="text-gray-900 bg-white indent-2">
+                                            {g.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            )}
+
+                            {friends.length > 0 && (
+                                <optgroup label="Friends" className="text-gray-900 font-semibold bg-gray-50">
+                                    {friends.map(f => (
+                                        <option key={f.id} value={`friend:${f.id}`} className="text-gray-900 bg-white indent-2">
+                                            {f.name || f.id}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            )}
+                        </select>
+                        {/* Custom arrow icon for better styling control */}
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
             )}
 
-            {selectedGroupId && (
+            {selection && (
                 <>
                     {loadingMembers ? (
                         <div className="flex justify-center py-4">

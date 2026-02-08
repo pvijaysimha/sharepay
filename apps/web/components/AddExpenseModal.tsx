@@ -63,24 +63,55 @@ export default function AddExpenseModal({ isOpen, onClose, groupId, members, cur
 
     const updateItem = (index: number, field: string, value: string | number) => {
         const newItems = [...scannedItems];
-        if (!newItems[index]) return; // Safety check
+        
+        // Ensure item exists before access
+        if (!newItems[index]) return;
+        
+        // Shallow copy the specific item
+        const itemCopy = { ...newItems[index] };
+        newItems[index] = itemCopy;
+
+        // Calculate old total using the copy (which matches old state currently)
+        const oldItemTotal = itemCopy.price * itemCopy.quantity;
 
         if (field === 'name' && typeof value === 'string') {
-             newItems[index].name = value;
+             itemCopy.name = value;
         } else if (field === 'price' && typeof value === 'number') {
-             newItems[index].price = value;
+             itemCopy.price = value;
         } else if (field === 'quantity' && typeof value === 'number') {
-             newItems[index].quantity = value;
+             itemCopy.quantity = value;
         }
+        
         setScannedItems(newItems);
+
+        // Update Total Amount based on difference
+        // We can use itemCopy directly as it is the new state
+        const newItemTotal = itemCopy.price * itemCopy.quantity;
+        const diff = newItemTotal - oldItemTotal;
+        
+        if (diff !== 0) {
+            const currentTotal = parseFloat(amount) || 0;
+            const newTotal = Math.max(0, currentTotal + diff);
+            setAmount(newTotal.toFixed(2));
+        }
     };
 
     const removeItem = (index: number) => {
+        const item = scannedItems[index];
+        if (!item) return;
+
+        const itemTotal = item.price * item.quantity;
+        
         setScannedItems(scannedItems.filter((_, i) => i !== index));
+        
+        const currentTotal = parseFloat(amount) || 0;
+        const newTotal = Math.max(0, currentTotal - itemTotal);
+        setAmount(newTotal.toFixed(2));
     };
 
     const addItem = () => {
         setScannedItems([...scannedItems, { name: 'New Item', price: 0, quantity: 1 }]);
+        // Price is 0, so no change to total yet. When user edits price, it will update.
     };
 
 
@@ -207,7 +238,7 @@ export default function AddExpenseModal({ isOpen, onClose, groupId, members, cur
                                                                 type="text" 
                                                                 value={item.name} 
                                                                 onChange={(e) => updateItem(idx, 'name', e.target.value)}
-                                                                className="w-full bg-transparent border-none p-0 text-xs focus:ring-0"
+                                                                className="w-full bg-transparent border-none p-0 text-xs text-gray-900 focus:ring-0"
                                                             />
                                                         </td>
                                                         <td className="px-2 py-1">
@@ -215,7 +246,7 @@ export default function AddExpenseModal({ isOpen, onClose, groupId, members, cur
                                                                 type="number" 
                                                                 value={item.price} 
                                                                 onChange={(e) => updateItem(idx, 'price', parseFloat(e.target.value))}
-                                                                className="w-full bg-transparent border-none p-0 text-xs focus:ring-0"
+                                                                className="w-full bg-transparent border-none p-0 text-xs text-gray-900 focus:ring-0"
                                                             />
                                                         </td>
                                                         <td className="px-2 py-1 text-center">
@@ -238,7 +269,7 @@ export default function AddExpenseModal({ isOpen, onClose, groupId, members, cur
                                 <label htmlFor="description" className="mb-2 block text-sm font-medium text-gray-900">Description</label>
                                 <input type="text" name="description" id="description" className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500" placeholder="e.g. Dinner" required value={description} onChange={(e) => setDescription(e.target.value)} />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label htmlFor="amount" className="mb-2 block text-sm font-medium text-gray-900">Amount</label>
                                     <input type="number" step="0.01" name="amount" id="amount" className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500" placeholder="0.00" required value={amount} onChange={(e) => setAmount(e.target.value)} />
