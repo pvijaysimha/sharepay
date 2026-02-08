@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import NotificationBell from '../../components/NotificationBell';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import MobileNav from '../../components/MobileNav';
 
 interface SessionUser {
   name?: string;
@@ -72,7 +73,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
+      <nav className="bg-white shadow-sm hidden md:block">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 justify-between">
             <div className="flex">
@@ -109,10 +110,14 @@ export default function DashboardLayout({
         </div>
       </nav>
 
-      <div className="py-10">
+      {/* Main content with padding for bottom nav on mobile */}
+      <div className="py-6 md:py-10 pb-24 md:pb-10">
         <main>
-          <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">{children}</div>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">{children}</div>
         </main>
+        
+        {/* Mobile Navigation */}
+        <MobileNav />
       </div>
     </div>
   );

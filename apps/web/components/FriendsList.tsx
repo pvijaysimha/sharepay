@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import AddFriendModal from './AddFriendModal';
+// AddFriendModal moved to parent
 import AddExpenseModal from './AddExpenseModal';
 import FriendLedger from './FriendLedger';
 
@@ -14,13 +14,15 @@ interface User {
 
 interface FriendsListProps {
     currentUser: User;
+    onAddFriend?: () => void;
+    refreshTrigger?: number;
 }
 
-export default function FriendsList({ currentUser }: FriendsListProps) {
+export default function FriendsList({ currentUser, onAddFriend, refreshTrigger = 0 }: FriendsListProps) {
     const [friends, setFriends] = useState<User[]>([]);
     const [balances, setBalances] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
-    const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
+    // Internal state for expense/ledger modals
     const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
     const [ledgerFriend, setLedgerFriend] = useState<User | null>(null);
 
@@ -49,13 +51,7 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
 
     useEffect(() => {
         fetchFriends();
-    }, []);
-
-    // Refresh friends list when a new friend is added
-    const handleAddFriendClose = () => {
-        setIsAddFriendOpen(false);
-        fetchFriends();
-    };
+    }, [refreshTrigger]);
 
     const handleOpenExpense = (friend: User) => {
         setSelectedFriend(friend);
@@ -69,15 +65,17 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
         <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-medium leading-6 text-gray-900">Friends</h2>
-                <button
-                    onClick={() => setIsAddFriendOpen(true)}
-                    className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
-                >
-                    Add Friend
-                </button>
+                {onAddFriend && (
+                    <button
+                        onClick={onAddFriend}
+                        className="inline-flex items-center rounded-md bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-100"
+                    >
+                        Add Friend
+                    </button>
+                )}
             </div>
 
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <div className="bg-white shadow overflow-hidden sm:rounded-xl">
                 <ul className="divide-y divide-gray-200">
                     {loading ? (
                          <li className="px-6 py-4 text-center text-sm text-gray-500">Loading...</li>
@@ -133,11 +131,6 @@ export default function FriendsList({ currentUser }: FriendsListProps) {
                     )}
                 </ul>
             </div>
-
-            <AddFriendModal 
-                isOpen={isAddFriendOpen} 
-                onClose={handleAddFriendClose} 
-            />
 
             {selectedFriend && (
                 <AddExpenseModal
