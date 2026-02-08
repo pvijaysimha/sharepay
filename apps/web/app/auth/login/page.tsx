@@ -33,6 +33,8 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
+        // Refresh to ensure cookies are picked up by middleware
+        router.refresh();
         router.push('/dashboard');
       } else if (data.needsVerification) {
         setNeedsVerification(true);
