@@ -58,8 +58,9 @@ export async function getAuthUser(): Promise<{ id: string; email: string } | nul
 
         if (token) {
             const payload = await verifyAuth(token);
-            if (payload?.id) {
-                return { id: payload.id, email: payload.email };
+            // Login API sets 'userId' in the JWT payload
+            if (payload?.userId) {
+                return { id: payload.userId as string, email: payload.email as string };
             }
         }
     } catch (error) {
