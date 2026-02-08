@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { jwtVerify } from 'jose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from './next-auth';
 import { prisma } from '@repo/db';
@@ -24,8 +23,10 @@ export function signToken(payload: object, expiresIn: string | number = '7d'): s
 
 export async function verifyAuth(token: string): Promise<any> {
     try {
-        const verified = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
-        return verified.payload;
+        // Use the same library (jsonwebtoken) for both signing and verification
+        const verified = jwt.verify(token, JWT_SECRET);
+        console.log('DEBUG verifyAuth - verified payload:', verified);
+        return verified;
     } catch (error) {
         console.error('verifyAuth error:', error);
         return null;
