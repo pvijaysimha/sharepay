@@ -55,10 +55,14 @@ export async function getAuthUser(): Promise<{ id: string; email: string } | nul
     try {
         const headersList = await headers();
         const cookieHeader = headersList.get('cookie') || '';
-        console.log('DEBUG getAuthUser - Cookie header:', cookieHeader);
+        console.log('DEBUG getAuthUser - Cookie header length:', cookieHeader.length);
 
-        const token = cookieHeader.split('token=')[1]?.split(';')[0] || '';
-        console.log('DEBUG getAuthUser - Token extracted:', token ? `${token.substring(0, 20)}...` : 'EMPTY');
+        // Use proper cookie parsing - find token cookie and extract its full value
+        // Cookies are separated by "; " (semicolon space)
+        const cookies = cookieHeader.split('; ');
+        const tokenCookie = cookies.find(c => c.startsWith('token='));
+        const token = tokenCookie ? tokenCookie.substring(6) : ''; // 'token='.length = 6
+        console.log('DEBUG getAuthUser - Token length:', token.length, 'First 20 chars:', token ? token.substring(0, 20) : 'EMPTY');
 
         if (token) {
             const payload = await verifyAuth(token);

@@ -10,8 +10,10 @@ export async function GET() {
         const cookieHeader = headersList.get('cookie') || '';
         const authHeader = headersList.get('authorization') || '';
 
-        // Extract token from cookie
-        const cookieToken = cookieHeader.split('token=')[1]?.split(';')[0] || '';
+        // Extract token from cookie using proper parsing
+        const cookies = cookieHeader.split('; ');
+        const tokenCookie = cookies.find(c => c.startsWith('token='));
+        const cookieToken = tokenCookie ? tokenCookie.substring(6) : '';
 
         // Extract token from Authorization header
         const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
