@@ -15,6 +15,11 @@ interface Transaction {
     groupName: string;
     userAmount: number;
     runningBalance: number;
+    billEntries?: {
+        name: string;
+        price: string;
+        quantity: number;
+    }[];
 }
 
 interface FriendLedgerProps {
@@ -29,6 +34,17 @@ interface FriendLedgerProps {
 }
 
 export default function FriendLedger({ isOpen, onClose, friend, currentUserId }: FriendLedgerProps) {
+    // ... existing state ...
+    
+    // ... fetchTransactions ...
+
+    // ... handleSettle ...
+
+    // ... useEffect ...
+
+    // ... render modal ...
+
+
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [netBalance, setNetBalance] = useState(0);
@@ -40,6 +56,8 @@ export default function FriendLedger({ isOpen, onClose, friend, currentUserId }:
     const [showSettleForm, setShowSettleForm] = useState(false);
     const [settleAmount, setSettleAmount] = useState('');
     const [settling, setSettling] = useState(false);
+
+    const [viewItemsTransaction, setViewItemsTransaction] = useState<Transaction | null>(null);
 
     const fetchTransactions = async () => {
         setLoading(true);
@@ -121,6 +139,48 @@ export default function FriendLedger({ isOpen, onClose, friend, currentUserId }:
                 <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
                 <div className="inline-block w-full max-w-4xl px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:p-6">
+                    {/* Items Modal */}
+                    {viewItemsTransaction && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setViewItemsTransaction(null)}>
+                            <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-900">{viewItemsTransaction.description} Items</h3>
+                                    <button onClick={() => setViewItemsTransaction(null)} className="text-gray-400 hover:text-gray-500">✕</button>
+                                </div>
+                                <div className="max-h-96 overflow-y-auto rounded-md border border-gray-200">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {viewItemsTransaction.billEntries?.map((item, idx) => (
+                                                <tr key={idx}>
+                                                    <td className="px-4 py-2 text-sm text-gray-900">{item.name}</td>
+                                                    <td className="px-4 py-2 text-sm text-gray-500 text-right">{item.quantity}</td>
+                                                    <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
+                                                        ${Number(item.price).toFixed(2)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {(!viewItemsTransaction.billEntries || viewItemsTransaction.billEntries.length === 0) && (
+                                                <tr>
+                                                    <td colSpan={3} className="px-4 py-4 text-center text-sm text-gray-500">No item details available.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="mt-4 text-right">
+                                     <p className="text-sm font-medium text-gray-900">Total: ${Number(viewItemsTransaction.amount).toFixed(2)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header */}
                     <div className="flex justify-between items-start mb-4">
                         <div>
@@ -254,7 +314,17 @@ export default function FriendLedger({ isOpen, onClose, friend, currentUserId }:
                                                 {new Date(tx.date).toLocaleDateString()}
                                             </td>
                                             <td className="px-4 py-2 text-sm text-gray-900">
-                                                <div>{tx.description}</div>
+                                                <div className="flex items-start gap-2">
+                                                    <span>{tx.description}</span>
+                                                    {tx.billEntries && tx.billEntries.length > 0 && (
+                                                        <button 
+                                                            onClick={() => setViewItemsTransaction(tx)}
+                                                            className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-200"
+                                                        >
+                                                            Receipt 🧾
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 <div className="text-xs text-gray-500">
                                                     {tx.payerId === currentUserId ? 'You paid' : `${tx.payerName} paid`}
                                                     {tx.category === 'SETTLEMENT' && ' (Settlement)'}

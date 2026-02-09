@@ -65,7 +65,8 @@ export async function GET(req: Request) {
                         user: { select: { id: true, name: true, email: true } }
                     }
                 },
-                group: { select: { id: true, name: true } }
+                group: { select: { id: true, name: true } },
+                billEntries: true // Fetch items
             },
             orderBy: { date: 'desc' }
         });
@@ -113,6 +114,11 @@ export async function GET(req: Request) {
                     userId: s.userId,
                     userName: s.user.name,
                     amount: Number(s.amount)
+                })),
+                billEntries: expense.billEntries.map(b => ({
+                    name: b.name,
+                    price: b.price.toString(),
+                    quantity: b.quantity
                 }))
             };
         });

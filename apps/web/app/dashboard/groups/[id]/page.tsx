@@ -41,7 +41,8 @@ async function getData(groupId: string) {
     const expenses = await prisma.expense.findMany({
         where: { groupId },
         include: {
-            payer: { select: { id: true, name: true } }
+            payer: { select: { id: true, name: true } },
+            billEntries: true // Fetch items
         },
         orderBy: { date: 'desc' }
     });
@@ -67,6 +68,10 @@ export default async function GroupDetailsPage({ params }: PageProps) {
         ...e,
         amount: e.amount.toString(),
         date: e.date.toISOString(),
+        billEntries: e.billEntries.map(b => ({
+            ...b,
+            price: b.price.toString()
+        }))
     }));
 
     return <GroupDetailsClient group={group} expenses={formattedExpenses} currentUser={user} />;

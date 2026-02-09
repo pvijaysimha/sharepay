@@ -20,6 +20,11 @@ interface Expense {
         id: string;
         name: string | null;
     };
+    billEntries?: {
+        name: string;
+        price: string; // Prisma Decimal to string
+        quantity: number;
+    }[];
 }
 
 interface GroupDetailsClientProps {
@@ -39,6 +44,7 @@ export default function GroupDetailsClient({ group, expenses, currentUser }: Gro
     const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
     const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [viewItemsExpense, setViewItemsExpense] = useState<Expense | null>(null);
 
     // Extract members list for the modal
     const members = group.members.map(m => m.user);
@@ -64,6 +70,48 @@ export default function GroupDetailsClient({ group, expenses, currentUser }: Gro
                 onClose={() => setIsAddMemberOpen(false)}
                 groupId={group.id}
             />
+
+            {/* Receipt Items Modal */}
+            {viewItemsExpense && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setViewItemsExpense(null)}>
+                    <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900">{viewItemsExpense.description} Items</h3>
+                            <button onClick={() => setViewItemsExpense(null)} className="text-gray-400 hover:text-gray-500">✕</button>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto rounded-md border border-gray-200">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {viewItemsExpense.billEntries?.map((item, idx) => (
+                                        <tr key={idx}>
+                                            <td className="px-4 py-2 text-sm text-gray-900">{item.name}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-500 text-right">{item.quantity}</td>
+                                            <td className="px-4 py-2 text-sm font-medium text-gray-900 text-right">
+                                                {group.currency} {Number(item.price).toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {(!viewItemsExpense.billEntries || viewItemsExpense.billEntries.length === 0) && (
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-4 text-center text-sm text-gray-500">No item details available.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="mt-4 text-right">
+                             <p className="text-sm font-medium text-gray-900">Total: {group.currency} {Number(viewItemsExpense.amount).toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="border-b border-gray-200 px-4 py-5 sm:px-6">
                 <div className="-ml-4 -mt-2 flex flex-wrap items-center justify-between sm:flex-nowrap">
@@ -112,6 +160,14 @@ export default function GroupDetailsClient({ group, expenses, currentUser }: Gro
                                         <div className="min-w-0">
                                             <div className="flex items-start gap-x-3">
                                                 <p className="text-sm font-semibold leading-6 text-gray-900">{expense.description}</p>
+                                                {expense.billEntries && expense.billEntries.length > 0 && (
+                                                    <button 
+                                                        onClick={() => setViewItemsExpense(expense)}
+                                                        className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-200"
+                                                    >
+                                                        Receipt 🧾
+                                                    </button>
+                                                )}
                                             </div>
                                             <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
                                                 <p className="whitespace-nowrap">
